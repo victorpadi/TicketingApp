@@ -47,9 +47,54 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      background-color: #f0f4f8;
+      background-color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+    }
+    .ticket-card {
+      transition: all 0.2s ease-in-out;
+    }
+    .ticket-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .priority-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .priority-high {
+      background-color: #fee2e2;
+      color: #dc2626;
+    }
+    .priority-medium {
+      background-color: #fef3c7;
+      color: #d97706;
+    }
+    .priority-low {
+      background-color: #dcfce7;
+      color: #16a34a;
+    }
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .status-open {
+      background-color: #dbeafe;
+      color: #2563eb;
+    }
+    .status-in-progress {
+      background-color: #e0e7ff;
+      color: #4f46e5;
+    }
+    .status-resolved {
+      background-color: #dcfce7;
+      color: #16a34a;
     }
   </style>
 </head>
@@ -58,6 +103,14 @@
 
   <script type="text/babel">
     function App() {
+      // Authentication state
+      const [loggedIn, setLoggedIn] = React.useState(false);
+      const [role, setRole] = React.useState(null); // 'admin' or 'user'
+      const [loginError, setLoginError] = React.useState('');
+      const [loginUsername, setLoginUsername] = React.useState('');
+      const [loginPassword, setLoginPassword] = React.useState('');
+
+      // ... existing ticket state ...
       const [tickets, setTickets] = React.useState(() => {
         const savedTickets = localStorage.getItem('tickets');
         return savedTickets ? JSON.parse(savedTickets) : [];
@@ -66,12 +119,36 @@
       const [priority, setPriority] = React.useState('Low');
       const [status, setStatus] = React.useState('Open');
       const [filter, setFilter] = React.useState('All');
-      const technicianName = "Victor Padi"; // Placeholder for the logged-in technician
+      const technicianName = role === 'admin' ? "Admin" : "Victor Padi";
 
       React.useEffect(() => {
         localStorage.setItem('tickets', JSON.stringify(tickets));
       }, [tickets]);
 
+      // Login handler
+      const handleLogin = (e) => {
+        e.preventDefault();
+        if (loginUsername === 'admin' && loginPassword === 'admin') {
+          setRole('admin');
+          setLoggedIn(true);
+          setLoginError('');
+        } else if (loginUsername === 'user' && loginPassword === 'user') {
+          setRole('user');
+          setLoggedIn(true);
+          setLoginError('');
+        } else {
+          setLoginError('Invalid username or password');
+        }
+      };
+
+      const handleLogout = () => {
+        setLoggedIn(false);
+        setRole(null);
+        setLoginUsername('');
+        setLoginPassword('');
+      };
+
+      // ... existing ticket handlers ...
       const handleSubmit = (e) => {
         e.preventDefault();
         if (description.trim()) {
@@ -104,101 +181,222 @@
         ? tickets
         : tickets.filter(ticket => ticket.status === filter);
 
-      return (
-        <div className="container mx-auto p-4">
-          <h1 className="text-3xl font-bold mb-6 text-indigo-700">Renang Media IT Support Dashboard</h1>
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl mb-4 text-gray-800">Add New Ticket</h2>
-            <form onSubmit={handleSubmit} className="mb-6">
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter ticket description (e.g., video rendering issue)"
-                className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows="3"
-              />
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-              <button
-                type="submit"
-                className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-200"
-              >
-                Submit Ticket
-              </button>
-            </form>
-            <div className="mb-4">
-              <label className="mr-2 text-gray-700">Filter by Status:</label>
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="All">All</option>
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
+      // Login page
+      if (!loggedIn) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+              <div className="flex flex-col items-center mb-6">
+                <img src="logo.jpeg" alt="Logo" className="h-16 w-16 object-contain rounded-[5em] mb-2 bg-gray-200" />
+                <h1 className="text-2xl font-bold text-gray-800">Renang Media IT Support</h1>
+              </div>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={loginUsername}
+                    onChange={e => setLoginUsername(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={e => setLoginPassword(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                {loginError && <div className="text-red-600 text-sm">{loginError}</div>}
+                <button
+                  type="submit"
+                  className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-200 font-medium"
+                >
+                  Login
+                </button>
+              </form>
+              <div className="mt-6 text-xs text-gray-500 text-center">
+                Demo credentials:<br />
+                <span className="font-semibold">Admin</span>: admin / admin<br />
+                <span className="font-semibold">User</span>: user / user
+              </div>
+              <div className="mt-6 flex justify-center space-x-6">
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-600 transition">
+                  <svg fill="currentColor" viewBox="0 0 24 24" className="w-7 h-7">
+                    <path d="M22.675 0h-21.35C.595 0 0 .592 0 1.326v21.348C0 23.406.595 24 1.325 24h11.495v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.797.143v3.24l-1.918.001c-1.504 0-1.797.715-1.797 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116C23.406 24 24 23.406 24 22.674V1.326C24 .592 23.406 0 22.675 0"/>
+                  </svg>
+                </a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition">
+                  <svg fill="currentColor" viewBox="0 0 24 24" className="w-7 h-7">
+                    <path d="M24 4.557a9.83 9.83 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724c-.951.564-2.005.974-3.127 1.195a4.916 4.916 0 0 0-8.38 4.482C7.691 8.095 4.066 6.13 1.64 3.161c-.542.929-.856 2.01-.857 3.17 0 2.188 1.115 4.117 2.823 5.254a4.904 4.904 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.936 4.936 0 0 1-2.224.084c.627 1.956 2.444 3.377 4.6 3.417A9.867 9.867 0 0 1 0 21.543a13.94 13.94 0 0 0 7.548 2.209c9.058 0 14.009-7.496 14.009-13.986 0-.21 0-.423-.016-.634A9.936 9.936 0 0 0 24 4.557z"/>
+                  </svg>
+                </a>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-pink-500 transition">
+                  <svg fill="currentColor" viewBox="0 0 24 24" className="w-7 h-7">
+                    <path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11.75 20h-3v-10h3v10zm-1.5-11.27c-.97 0-1.75-.79-1.75-1.76s.78-1.76 1.75-1.76c.97 0 1.75.79 1.75 1.76s-.78 1.76-1.75 1.76zm15.25 11.27h-3v-5.6c0-1.34-.03-3.07-1.87-3.07-1.87 0-2.16 1.46-2.16 2.97v5.7h-3v-10h2.89v1.36h.04c.4-.75 1.38-1.54 2.84-1.54 3.04 0 3.6 2 3.6 4.59v5.59z"/>
+                  </svg>
+                </a>
+              </div>
             </div>
-            <div className="mt-6">
-              <h2 className="text-xl mb-4 text-gray-800">Active Tickets</h2>
-              {filteredTickets.length === 0 ? (
-                <p className="text-gray-500">No tickets match the filter.</p>
-              ) : (
-                <ul className="space-y-4">
-                  {filteredTickets.map((ticket) => (
-                    <li
-                      key={ticket.id}
-                      className={`p-4 border rounded-lg ${ticket.status === 'Resolved' ? 'bg-green-100 border-green-300' : 'bg-gray-50 border-gray-200'}`}
-                    >
-                      <div>
-                        <strong className="text-gray-900">{ticket.description}</strong> (Priority: {ticket.priority})
-                      </div>
-                      <div className="text-gray-600">Status: {ticket.status}</div>
-                      {ticket.assignedTo && (
-                        <div className="text-gray-600">Assigned to: {ticket.assignedTo}</div>
-                      )}
-                      {ticket.status === 'Open' && !ticket.assignedTo && (
-                        <button
-                          onClick={() => handleAssign(ticket.id)}
-                          className="mt-2 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition duration-200"
-                        >
-                          Assign to Me
-                        </button>
-                      )}
-                      {ticket.status !== 'Resolved' && (
-                        <button
-                          onClick={() => handleResolve(ticket.id)}
-                          className="mt-2 ml-2 bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition duration-200"
-                        >
-                          Mark as Resolved
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(ticket.id)}
-                        className="mt-2 ml-2 bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition duration-200"
+          </div>
+        );
+      }
+
+      // ... existing code ...
+      // Add a label for admin interface
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between mb-8 rounded-xl bg-gray-800 px-8 py-6 shadow-md">
+              <div className="flex items-center space-x-4">
+                <img src="logo.jpeg" alt="Logo" className="h-12 w-12 object-contain rounded-[5em] bg-white" />
+                <h1 className="text-3xl font-bold text-white">Renang Media IT Support Dashboard</h1>
+                {role === 'admin' && (
+                  <span className="ml-4 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-semibold">Admin</span>
+                )}
+                {role === 'user' && (
+                  <span className="ml-4 px-3 py-1 rounded-full bg-green-600 text-white text-xs font-semibold">User</span>
+                )}
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-300">Welcome,</span>
+                <span className="font-medium text-white">{technicianName}</span>
+                <button
+                  onClick={handleLogout}
+                  className="ml-6 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Ticket</h2>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter ticket description (e.g., video rendering issue)"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        rows="3"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                      <select
+                        value={priority}
+                        onChange={(e) => setPriority(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       >
-                        Delete
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      >
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                      </select>
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-200 font-medium"
+                    >
+                      Submit Ticket
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-semibold text-gray-900">Active Tickets</h2>
+                    <select
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                    >
+                      <option value="All">All Tickets</option>
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                    </select>
+                  </div>
+
+                  {filteredTickets.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500">No tickets match the filter.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredTickets.map((ticket) => (
+                        <div
+                          key={ticket.id}
+                          className="ticket-card bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-2">
+                              <p className="text-gray-900 font-medium">{ticket.description}</p>
+                              <div className="flex items-center space-x-3">
+                                <span className={`priority-badge priority-${ticket.priority.toLowerCase()}`}>
+                                  {ticket.priority}
+                                </span>
+                                <span className={`status-badge status-${ticket.status.toLowerCase().replace(' ', '-')}`}>
+                                  {ticket.status}
+                                </span>
+                                {ticket.assignedTo && (
+                                  <span className="text-sm text-gray-600">
+                                    Assigned to: {ticket.assignedTo}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {ticket.status === 'Open' && !ticket.assignedTo && (
+                                <button
+                                  onClick={() => handleAssign(ticket.id)}
+                                  className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition duration-200 text-sm font-medium"
+                                >
+                                  Assign to Me
+                                </button>
+                              )}
+                              {ticket.status !== 'Resolved' && (
+                                <button
+                                  onClick={() => handleResolve(ticket.id)}
+                                  className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition duration-200 text-sm font-medium"
+                                >
+                                  Resolve
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDelete(ticket.id)}
+                                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition duration-200 text-sm font-medium"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
